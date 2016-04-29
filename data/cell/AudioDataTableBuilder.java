@@ -48,33 +48,27 @@
  */
 package org.knime.base.node.audio2.data.cell;
 
-import org.knime.base.node.audio2.data.Audio;
-import org.knime.core.data.DataTable;
-import org.knime.core.data.DataTableSpec;
-import org.knime.core.node.BufferedDataTable;
-import org.knime.core.node.ExecutionContext;
-
 /**
  *
  * @author Budi Yanto, KNIME.com
  */
 public class AudioDataTableBuilder {
 
-    public BufferedDataTable createDataTable(final Audio... audios,
-            final ExecutionContext exec){
-
-    }
-
-    public DataTableSpec createDataTableSpec(){
-        return null;
-    }
-
-    public static DataTableSpec rearrangeDataTableSpec(final DataTableSpec inSpec){
-        return null;
-    }
-
-    public static BufferedDataTable rearrangeDataTable(final DataTable inTable){
-        return null;
-    }
+//    public BufferedDataTable createDataTable(final Audio... audios,
+//            final ExecutionContext exec){
+//
+//    }
+//
+//    public DataTableSpec createDataTableSpec(){
+//        return null;
+//    }
+//
+//    public static DataTableSpec rearrangeDataTableSpec(final DataTableSpec inSpec){
+//        return null;
+//    }
+//
+//    public static BufferedDataTable rearrangeDataTable(final DataTable inTable){
+//        return null;
+//    }
 
 }

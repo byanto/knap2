@@ -48,12 +48,97 @@
  */
 package org.knime.base.node.audio2.util;
 
+import java.io.IOException;
+
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.UnsupportedAudioFileException;
+
+import org.knime.core.node.NodeLogger;
+
+import jAudioFeatureExtractor.jAudioTools.AudioMethods;
+import jAudioFeatureExtractor.jAudioTools.DSPMethods;
+
 /**
  *
  * @author Budi Yanto, KNIME.com
  */
 public class AudioUtils {
 
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(AudioUtils.class);
 
+    /**
+     * Normalizes bytes from bits.
+     *
+     * Some formats allow for bit depths in non-multiples of 8.
+     * they will, however, typically pad so the samples are stored
+     * that way. AIFF is one of these formats.
+     *
+     * so the expression:
+     *
+     *  bitsPerSample + 7 >> 3
+     *
+     * computes a division of 8 rounding up (for positive numbers).
+     *
+     * this is basically equivalent to:
+     *
+     * (int)Math.ceil(bitsPerSample / 8.0)
+     *
+     * @param bitsPerSample bits to normalize
+     * @return the normalized bytes
+     */
+    public static int normalizeBytesFromBits(final int bitsPerSample) {
+        return bitsPerSample + 7 >> 3;
+    }
+
+    public static int normalizeBitDepthFromBits(final int bitsPerSample){
+        return normalizeBytesFromBits(bitsPerSample) * 8;
+    }
+
+    public static double[][] getSamples(final AudioInputStream audioInputStream)
+            throws UnsupportedAudioFileException, IOException{
+
+        AudioFormat format = audioInputStream.getFormat();
+        final int bitDepth = normalizeBitDepthFromBits(format.getSampleSizeInBits());
+
+        // If the audio is not PCM signed big endian, then convert it to PCM
+        // signed. This is particularly necessary when dealing with MP3s
+        AudioInputStream newStream = audioInputStream;
+        if(format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED ||
+                !format.isBigEndian()){
+            format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+                format.getSampleRate(), bitDepth, format.getChannels(),
+                format.getChannels() * (bitDepth / 8), format.getFrameRate(), true);
+            newStream = AudioSystem.getAudioInputStream(format, audioInputStream);
+        }
+
+        double[][] channelSamples = null;
+        try{
+            channelSamples = AudioMethods.extractSampleValues(newStream);
+        } catch(Exception ex){
+            LOGGER.error(ex.getMessage());
+        }
+
+//        audioInputStream.close();
+
+
+        if(newStream != null){
+            newStream.close();
+        }
+
+//        if(channelSamples == null){
+//            return null;
+//        }
+        return channelSamples;
+//        return DSPMethods.getSamplesMixedDownIntoOneChannel(channelSamples);
+
+    }
+
+    public static double[] getSamplesMixedDownIntoOneChannel(
+            final AudioInputStream audioInputStream) throws UnsupportedAudioFileException, IOException {
+        final double[][] samples = getSamples(audioInputStream);
+        return DSPMethods.getSamplesMixedDownIntoOneChannel(samples);
+    }
 
 }

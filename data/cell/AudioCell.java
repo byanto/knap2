@@ -55,6 +55,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.knime.base.node.audio2.data.Audio;
 import org.knime.base.node.audio2.util.AudioCellUtils;
 import org.knime.core.data.DataCell;
+import org.knime.core.data.DataCellDataInput;
+import org.knime.core.data.DataCellDataOutput;
+import org.knime.core.data.DataCellSerializer;
 import org.knime.core.data.DataType;
 import org.knime.core.data.StringValue;
 import org.knime.core.data.filestore.FileStore;
@@ -67,31 +70,31 @@ import org.knime.core.util.LRUCache;
  */
 public class AudioCell extends FileStoreCell implements AudioValue, StringValue {
 
-//    /**
-//     * Serializer for {@link AudioCell}s.
-//     * @noreference This class is not intended to be referenced by clients.
-//     */
-//    public static final class Serializer implements DataCellSerializer<AudioCell>{
-//
-//        /**
-//         * {@inheritDoc}
-//         */
-//        @Override
-//        public void serialize(final AudioCell cell, final DataCellDataOutput output) throws IOException {
-//            cell.serializeCell(output);
-//        }
-//
-//        /**
-//         * {@inheritDoc}
-//         */
-//        @Override
-//        public AudioCell deserialize(final DataCellDataInput input) throws IOException {
-//            AudioCell cell = new AudioCell();
-//            cell.deserializeCell(input);
-//            return cell;
-//        }
-//
-//    }
+    /**
+     * Serializer for {@link AudioCell}s.
+     * @noreference This class is not intended to be referenced by clients.
+     */
+    public static final class Serializer implements DataCellSerializer<AudioCell>{
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void serialize(final AudioCell cell, final DataCellDataOutput output) throws IOException {
+            cell.serializeCell(output);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public AudioCell deserialize(final DataCellDataInput input) throws IOException {
+            AudioCell cell = new AudioCell();
+            cell.deserializeCell(input);
+            return cell;
+        }
+
+    }
 
     /**
      * Convenience access member for
@@ -118,8 +121,8 @@ public class AudioCell extends FileStoreCell implements AudioValue, StringValue 
     /** Flag to specify whether audio data of cell was serialized or not, in order to avoid multiple writes */
     private AtomicBoolean m_serialized = new AtomicBoolean(false);
 
-//    /** UUID as unique identifier of audio */
-//    private UUID m_audioUUID;
+    /** UUID as unique identifier of audio */
+    private UUID m_audioUUID;
 //
 //    /** Offset used to mark the position of the audio data in file store */
 //    private long m_offset;
@@ -143,7 +146,7 @@ public class AudioCell extends FileStoreCell implements AudioValue, StringValue 
     public AudioCell(final FileStore fileStore, final Audio audio){
         super(fileStore);
         m_audio = audio;
-//        m_audioUUID = audio.getUuid();
+        m_audioUUID = audio.getUuid();
     }
 
     /**
@@ -194,25 +197,25 @@ public class AudioCell extends FileStoreCell implements AudioValue, StringValue 
         return m_audio.equals(((AudioValue)dc).getAudio());
     }
 
-//    /**
-//     *
-//     * @param output
-//     * @throws IOException
-//     */
-//    public void serializeCell(final DataCellDataOutput output) throws IOException {
+    /**
+     *
+     * @param output
+     * @throws IOException
+     */
+    public void serializeCell(final DataCellDataOutput output) throws IOException {
 //        flushToFileStore();
-////        output.writeLong(offset);
-////        output.write
-//    }
-//
-//    /**
-//     *
-//     * @param input
-//     * @throws IOException
-//     */
-//    public void deserializeCell(final DataCellDataInput input) throws IOException {
-//
-//    }
+        output.writeUTF(m_audioUUID.toString());
+    }
+
+    /**
+     *
+     * @param input
+     * @throws IOException
+     */
+    public void deserializeCell(final DataCellDataInput input) throws IOException {
+        m_serialized = new AtomicBoolean(true);
+        m_audioUUID = UUID.fromString(input.readUTF());
+    }
 
     /**
      * {@inheritDoc}
@@ -228,8 +231,25 @@ public class AudioCell extends FileStoreCell implements AudioValue, StringValue 
      * {@inheritDoc}
      */
     @Override
-    protected void postConstruct() throws IOException {
-        super.postConstruct();
+    protected synchronized void postConstruct() throws IOException {
+        if(m_audio == null && m_audioUUID != null) {
+            synchronized (AUDIO_CACHE) {
+                m_audio = AUDIO_CACHE.get(m_audioUUID);
+            }
+            // Only deserialize if audio is not in cache
+            if(m_audio == null){
+                m_audio = AudioCellUtils.deserialize(getFileStore().getFile());
+                synchronized (AUDIO_CACHE) {
+                    final Audio audio = AUDIO_CACHE.get(m_audioUUID);
+                    if(audio == null){
+                        AUDIO_CACHE.put(m_audioUUID, m_audio);
+                    }else{
+                        m_audio = audio; // race condition, another thread "won"
+                    }
+                }
+            }
+
+        }
     }
 
 }

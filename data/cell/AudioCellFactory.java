@@ -70,7 +70,7 @@ public class AudioCellFactory implements DataCellFactory {
     private static final long MAX_FILE_STORE_SIZE = 10 * 1024l * 1024l;
 
     /** The estimated current file store size in bytes */
-    private long m_currentFileStoreSize = 0;
+//    private long m_currentFileStoreSize = 0;
 
     private FileStore m_fileStore;
     private FileStoreFactory m_fileStoreFactory;
@@ -90,10 +90,19 @@ public class AudioCellFactory implements DataCellFactory {
      * @return a new <code>AudioCell</code> containing the given <code>Audio</code>.
      */
     public AudioCell createCell(final Audio audio){
-        final long audioSize = audio.getSize();
-        updateFileStore(audioSize);
+//        final long audioSize = audio.getSize();
+//        updateFileStore(audioSize);
+        final String fileStoreUUID = UUID.randomUUID().toString();
+        LOGGER.debug("Creating a new file store: " + fileStoreUUID);
+//            + ". The size of the last file store is approx. "
+//            + (m_currentFileStoreSize / (1024.0 * 1024.0)) + " MB.");
+        try{
+            m_fileStore = m_fileStoreFactory.createFileStore(fileStoreUUID);
+        } catch(IOException ex){
+            LOGGER.error("Could not create file store.", ex);
+        }
         AudioCell cell = new AudioCell(m_fileStore, audio);
-        m_currentFileStoreSize += audioSize;
+//        m_currentFileStoreSize += audioSize;
         return cell;
     }
 
@@ -103,20 +112,20 @@ public class AudioCellFactory implements DataCellFactory {
      * Otherwise use the existing one.
      * @param size the approx. size of the next audio to write (in Bytes).
      */
-    private void updateFileStore(final long size) {
-        if((m_fileStore == null) ||
-                ((m_currentFileStoreSize + size) >= MAX_FILE_STORE_SIZE)){
-            final String fileStoreUUID = UUID.randomUUID().toString();
-            LOGGER.debug("Creating a new file store: " + fileStoreUUID
-                + ". The size of the last file store is approx. "
-                + (m_currentFileStoreSize / (1024.0 * 1024.0)) + " MB.");
-            try{
-                m_fileStore = m_fileStoreFactory.createFileStore(fileStoreUUID);
-            } catch(IOException ex){
-                LOGGER.error("Could not create file store.", ex);
-            }
-        }
-    }
+//    private void updateFileStore(final long size) {
+//        if((m_fileStore == null) ||
+//                ((m_currentFileStoreSize + size) >= MAX_FILE_STORE_SIZE)){
+//            final String fileStoreUUID = UUID.randomUUID().toString();
+//            LOGGER.debug("Creating a new file store: " + fileStoreUUID
+//                + ". The size of the last file store is approx. "
+//                + (m_currentFileStoreSize / (1024.0 * 1024.0)) + " MB.");
+//            try{
+//                m_fileStore = m_fileStoreFactory.createFileStore(fileStoreUUID);
+//            } catch(IOException ex){
+//                LOGGER.error("Could not create file store.", ex);
+//            }
+//        }
+//    }
 
     /**
      * {@inheritDoc}

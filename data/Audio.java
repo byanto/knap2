@@ -56,7 +56,6 @@ import net.imglib2.type.numeric.real.DoubleType;
 /**
  *
  * @author Budi Yanto, KNIME.com
- * @param <T> type of audio samples
  */
 public class Audio {
 

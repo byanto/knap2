@@ -52,7 +52,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioFormat.Encoding;
+
 import org.knime.base.node.audio2.data.Audio;
 import org.knime.base.node.audio2.data.AudioBuilder;
 import org.knime.base.node.audio2.data.AudioMetadata;
@@ -72,41 +74,59 @@ import net.imglib2.type.numeric.real.DoubleType;
  */
 public class AudioCellUtils {
 
-    /**
-    * Convert the given audio to byte array
-    * @param audio audio to convert
-    * @return the byte array of the given audio
-    */
-   public static byte[] convertToByteArray(final Audio audio) throws IOException{
-       final ByteArrayOutputStream out = new ByteArrayOutputStream();
-       final BufferedDataOutputStream buf = new BufferedDataOutputStream(out);
-       buf.writeUTF(audio.getUuid().toString());
-
-       out.flush();
-       return out.toByteArray();
-   }
-
-   /**
-    * Convert the given byte array to audio
-    * @param bytes the byte array to convert
-    * @return the audio representation of the byte array
-    */
-   public static Audio convertToAudio(final byte[] bytes){
-       return null;
-   }
+//    /**
+//    * Convert the given audio to byte array
+//    * @param audio audio to convert
+//    * @return the byte array of the given audio
+//    */
+//   public static byte[] convertToByteArray(final Audio audio) throws IOException{
+//       final ByteArrayOutputStream out = new ByteArrayOutputStream();
+//       final BufferedDataOutputStream buf = new BufferedDataOutputStream(out);
+//       buf.writeUTF(audio.getUuid().toString());
+//
+//       out.flush();
+//       return out.toByteArray();
+//   }
+//
+//   /**
+//    * Convert the given byte array to audio
+//    * @param bytes the byte array to convert
+//    * @return the audio representation of the byte array
+//    */
+//   public static Audio convertToAudio(final byte[] bytes){
+//       return null;
+//   }
 
    public static void serialize(final Audio audio, final File file)
            throws FileNotFoundException, IOException{
        final BufferedDataOutputStream outStream = StreamUtil.createOutStream(file);
 
-       final Img<DoubleType> samples = audio.getSamples();
-
        /* Write audio metadata to the output stream */
        final AudioMetadata metadata = audio.getMetadata();
-       outStream.writeUTF(metadata.getFilePath());
+       // Write filePath using char arrays
+       final char[] pathChars = metadata.getFilePath().toCharArray();
+       outStream.writeInt(pathChars.length);
+       outStream.write(pathChars);
+//       outStream.writeUTF(metadata.getFilePath()); // write filePath
+       final AudioFormat format = metadata.getAudioFormat();
+//       outStream.writeUTF(format.getEncoding().toString()); // write Encoding
+       // Write Encoding using char arrays
+       final char[] encodingChars = format.getEncoding().toString().toCharArray();
+       outStream.writeInt(encodingChars.length);
+       outStream.write(encodingChars);
+
+       outStream.writeFloat(format.getSampleRate()); // write sampleRate
+       outStream.writeInt(format.getSampleSizeInBits()); // write sampleSizeInBits
+       outStream.writeInt(format.getChannels()); // write channels
+       outStream.writeInt(format.getFrameSize()); // write frameSize
+       outStream.writeFloat(format.getFrameRate()); // write frameRate
+       outStream.writeBoolean(format.isBigEndian()); // write bigEndian
+
+       //TODO: Write AudioFormat properties
 
 
        /* Write audio samples to the output stream */
+       final Img<DoubleType> samples = audio.getSamples();
        // write dimensions
        outStream.writeInt(samples.numDimensions());
        for (int i = 0; i < samples.numDimensions(); i++) {
@@ -128,7 +148,25 @@ public class AudioCellUtils {
    public static Audio deserialize(final File file) throws IOException{
        final BufferedDataInputStream inStream = StreamUtil.createInputStream(file, 0);
        /* Read audio metadata from the input stream */
+//       final String filePath = inStream.readUTF(); // read filePath
+       // Read filePath
+       final char[] filePathChars = new char[inStream.readInt()];
+       inStream.read(filePathChars);
 
+       final char[] encodingChars = new char[inStream.readInt()];
+       inStream.read(encodingChars);
+       final AudioFormat format = new AudioFormat(
+           new Encoding(encodingChars.toString()), // read Encoding
+           inStream.readFloat(), // read sampleRate
+           inStream.readInt(), // read sampleSizeInBits
+           inStream.readInt(), // read channels
+           inStream.readInt(),  // read frameSize
+           inStream.readFloat(),  // read frameRate
+           inStream.readBoolean()); // read bigEndian
+
+       // TODO: read properties of AudioFormat
+
+       final AudioMetadata metadata = new AudioMetadata(filePathChars.toString(), format);
 
        /* Read audio samples from the input stream */
        ImgFactory<DoubleType> factory = new ArrayImgFactory<DoubleType>();
@@ -158,12 +196,10 @@ public class AudioCellUtils {
            currIdx += idx;
        }
 
-
-
        /* Close the input stream */
        inStream.close();
 
-       return AudioBuilder.createAudio(null, samples);
+       return AudioBuilder.createAudio(metadata, samples);
    }
 
 
