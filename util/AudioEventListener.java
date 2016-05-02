@@ -44,33 +44,25 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Apr 28, 2016 (budiyanto): created
+ *   May 2, 2016 (budiyanto): created
  */
 package org.knime.base.node.audio2.util;
 
 /**
- *
+ * Interface for audio events that may occur.
  * @author Budi Yanto, KNIME.com
  */
-public class KNAPConstants {
-
-    /** Prevent the creation of a new instance. */
-    private KNAPConstants() {}
+public interface AudioEventListener {
 
     /**
-     * Suffix to be added to files if they are zip compressed.
+     * Called before an event occurs.
      */
-    public static final String ZIP_SUFFIX = ".zip";
+    public void beforeEvent();
 
-    /** The default column label for audio column selection in DialogCompoent */
-    public static final String AUDIO_COL_LABEL = "Audio Column";
+    /**
+     * Caled after an event occured
+     */
+    public void afterEvent();
 
-    /** The default column name for audio cell */
-    public static final String AUDIO_COL_NAME = "Audio";
 
-    /** The dimension of the samples in Img */
-    public static final int SAMPLES_DIMENSION = 0;
-
-    /** The dimension of the channel in Img */
-    public static final int CHANNEL_DIMENSION = 1;
 }

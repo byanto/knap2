@@ -48,6 +48,8 @@
  */
 package org.knime.base.node.audio2.data;
 
+import java.io.File;
+
 import javax.sound.sampled.AudioFormat;
 
 /**
@@ -56,6 +58,7 @@ import javax.sound.sampled.AudioFormat;
  */
 public class AudioMetadata {
     private String m_filePath;
+    private String m_name;
     private AudioFormat m_format;
 
     /**
@@ -64,6 +67,7 @@ public class AudioMetadata {
     public AudioMetadata(final String filePath, final AudioFormat format) {
         m_filePath = filePath;
         m_format = format;
+        m_name = new File(filePath).getName();
     }
 
     /**
@@ -78,6 +82,20 @@ public class AudioMetadata {
      */
     public void setFilePath(final String filePath) {
         m_filePath = filePath;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return m_name;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(final String name) {
+        m_name = name;
     }
 
     /**

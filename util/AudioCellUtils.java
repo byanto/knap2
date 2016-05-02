@@ -74,42 +74,19 @@ import net.imglib2.type.numeric.real.DoubleType;
  */
 public class AudioCellUtils {
 
-//    /**
-//    * Convert the given audio to byte array
-//    * @param audio audio to convert
-//    * @return the byte array of the given audio
-//    */
-//   public static byte[] convertToByteArray(final Audio audio) throws IOException{
-//       final ByteArrayOutputStream out = new ByteArrayOutputStream();
-//       final BufferedDataOutputStream buf = new BufferedDataOutputStream(out);
-//       buf.writeUTF(audio.getUuid().toString());
-//
-//       out.flush();
-//       return out.toByteArray();
-//   }
-//
-//   /**
-//    * Convert the given byte array to audio
-//    * @param bytes the byte array to convert
-//    * @return the audio representation of the byte array
-//    */
-//   public static Audio convertToAudio(final byte[] bytes){
-//       return null;
-//   }
-
    public static void serialize(final Audio audio, final File file)
            throws FileNotFoundException, IOException{
        final BufferedDataOutputStream outStream = StreamUtil.createOutStream(file);
 
        /* Write audio metadata to the output stream */
        final AudioMetadata metadata = audio.getMetadata();
+
        // Write filePath using char arrays
        final char[] pathChars = metadata.getFilePath().toCharArray();
        outStream.writeInt(pathChars.length);
        outStream.write(pathChars);
-//       outStream.writeUTF(metadata.getFilePath()); // write filePath
+
        final AudioFormat format = metadata.getAudioFormat();
-//       outStream.writeUTF(format.getEncoding().toString()); // write Encoding
        // Write Encoding using char arrays
        final char[] encodingChars = format.getEncoding().toString().toCharArray();
        outStream.writeInt(encodingChars.length);
@@ -148,7 +125,6 @@ public class AudioCellUtils {
    public static Audio deserialize(final File file) throws IOException{
        final BufferedDataInputStream inStream = StreamUtil.createInputStream(file, 0);
        /* Read audio metadata from the input stream */
-//       final String filePath = inStream.readUTF(); // read filePath
        // Read filePath
        final char[] filePathChars = new char[inStream.readInt()];
        inStream.read(filePathChars);

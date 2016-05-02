@@ -51,6 +51,7 @@ package org.knime.base.node.audio2.data;
 import java.io.File;
 import java.io.IOException;
 
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -58,10 +59,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import org.knime.base.node.audio2.util.AudioUtils;
 import org.knime.base.node.audio2.util.Validator;
 
-import net.imglib2.Cursor;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.type.numeric.real.DoubleType;
 
 /**
@@ -82,11 +80,29 @@ public class AudioBuilder {
         final AudioInputStream audioStream = AudioSystem.getAudioInputStream(
             new File(filePath));
 
+        AudioFormat format = audioStream.getFormat();
+        final int bitDepth = AudioUtils.normalizeBitDepthFromBits(
+            format.getSampleSizeInBits());
+
+        // If the audio is not PCM signed big endian, then convert it to PCM
+        // signed. This is particularly necessary when dealing with MP3s
+        AudioInputStream newStream = audioStream;
+        if(format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED ||
+                !format.isBigEndian()){
+            format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+                format.getSampleRate(), bitDepth, format.getChannels(),
+                format.getChannels() * (bitDepth / 8), format.getFrameRate(), true);
+            newStream = AudioSystem.getAudioInputStream(format, audioStream);
+        }
+
         final AudioMetadata metadata = new AudioMetadata(filePath,
-            audioStream.getFormat());
+            newStream.getFormat());
 
-        final Img<DoubleType> samples = readSamples(audioStream);
+        final Img<DoubleType> samples = AudioUtils.getSamples(newStream);
 
+        if(newStream != audioStream){
+            newStream.close();
+        }
         audioStream.close();
 
         return new Audio(metadata, samples);
@@ -105,22 +121,4 @@ public class AudioBuilder {
     public Audio createAudio(){
         return new Audio();
     }
-
-    private static Img<DoubleType> readSamples(final AudioInputStream audioStream)
-            throws UnsupportedAudioFileException, IOException{
-        ImgFactory<DoubleType> factory = new ArrayImgFactory<DoubleType>();
-        final double[] samples = AudioUtils.getSamplesMixedDownIntoOneChannel(audioStream);
-        final long[] dims = new long[]{samples.length};
-        final Img<DoubleType> imgSamples = factory.create(dims, new DoubleType());
-        final Cursor<DoubleType> cur = imgSamples.cursor();
-        cur.reset();
-        for(double val : samples){
-            cur.fwd();
-            cur.get().set(val);
-        }
-
-        return imgSamples;
-    }
-
-
 }

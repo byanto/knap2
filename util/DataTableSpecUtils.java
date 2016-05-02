@@ -44,33 +44,52 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Apr 28, 2016 (budiyanto): created
+ *   Apr 13, 2016 (budiyanto): created
  */
 package org.knime.base.node.audio2.util;
+
+import org.knime.base.node.audio.data.node.AudioValue;
+import org.knime.core.data.DataColumnSpec;
+import org.knime.core.data.DataTableSpec;
+import org.knime.core.node.InvalidSettingsException;
 
 /**
  *
  * @author Budi Yanto, KNIME.com
  */
-public class KNAPConstants {
-
-    /** Prevent the creation of a new instance. */
-    private KNAPConstants() {}
+public final class DataTableSpecUtils {
 
     /**
-     * Suffix to be added to files if they are zip compressed.
+     * @param spec the <code>DataTableSpec</code> to get the information
+     * @return the first audio column in the given <code>DataTableSpec</code>
      */
-    public static final String ZIP_SUFFIX = ".zip";
+    public static String getFirstAudioColumn(final DataTableSpec spec){
+        String result = null;
+        for(final DataColumnSpec colSpec : spec){
+            if(colSpec.getType().isCompatible(AudioValue.class)){
+                result = colSpec.getName();
+                break;
+            }
+        }
+        return result;
+    }
 
-    /** The default column label for audio column selection in DialogCompoent */
-    public static final String AUDIO_COL_LABEL = "Audio Column";
+    /**
+     * Verifies that the given column exists in the <code>DataTableSpec</code>
+     * @param spec the <code>DataTableSpec</code> to analyze
+     * @param column the column name to analyze
+     * @return the index of the column in the <code>DataTableSpec</code> if exists,
+     * otherwise -1
+     * @throws InvalidSettingsException if the column doesn't exist in the <code>DataTableSpec</code>
+     */
+    public static int verifyColumnInDataTableSpec(final DataTableSpec spec,
+            final String column) throws InvalidSettingsException {
+        final int colIndex = spec.findColumnIndex(column);
+        if(colIndex < 0){
+            throw new InvalidSettingsException(
+                "Column \"" + column + "\" doesn't exist in DataTableSpec");
+        }
+        return colIndex;
+    }
 
-    /** The default column name for audio cell */
-    public static final String AUDIO_COL_NAME = "Audio";
-
-    /** The dimension of the samples in Img */
-    public static final int SAMPLES_DIMENSION = 0;
-
-    /** The dimension of the channel in Img */
-    public static final int CHANNEL_DIMENSION = 1;
 }
